@@ -1,0 +1,2316 @@
+<!DOCTYPE html>
+<html lang="sl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
+
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; frame-src 'self' blob:; worker-src 'self' blob:; connect-src 'self'; require-trusted-types-for 'script'; trusted-types racunkomat-policy;">
+
+    <meta name="description"
+        content="Računkomat 2026 – Sodobna, varna in 100% lokalna aplikacija za izdajanje računov brez spletnega računa.">
+    <meta name="theme-color" content="#3b82f6">
+
+    <!-- Open Graph / SEO -->
+    <meta property="og:title" content="Računkomat – Izdajanje računov">
+    <meta property="og:description"
+        content="Sodobno orodje za slovenska podjetja. Brez naročnin, brez oblaka, varno na vaši napravi.">
+    <meta property="og:type" content="website">
+
+    <title>Računkomat</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+    <link rel="mask-icon" href="assets/icons/icon-maskable.svg" color="#3b82f6">
+
+    <!-- iOS PWA Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Računkomat">
+
+    <!-- Font Preloading (Core Web Vitals - FOUT prevention) -->
+    <link rel="preload" href="assets/webfonts/inter-latin-400-normal.woff2" as="font" type="font/woff2"
+        crossorigin="anonymous">
+    <link rel="preload" href="assets/webfonts/inter-latin-600-normal.woff2" as="font" type="font/woff2"
+        crossorigin="anonymous">
+    <link rel="preload" href="assets/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/vendor/fontawesome.css">
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- ModulePreload (Critical JS - ) -->
+    <link rel="modulepreload" href="js/main.js">
+    <link rel="modulepreload" href="js/ui.js">
+    <link rel="modulepreload" href="js/store.js">
+    <link rel="modulepreload" href="js/modules/StorageManager.js">
+    <link rel="modulepreload" href="js/event-bus.js">
+    <link rel="modulepreload" href="js/utils.js">
+    <link rel="modulepreload" href="js/components/form/EntityFormHandler.js">
+
+    <!-- Speculation Rules moved to external or headers (CSP Strict Mode) -->
+
+    <!-- Vendor knjižnice se nalagajo na zahtevo (lazy-loading) prek js/modules/LazyLoader.js -->
+
+    <!-- Fonts: loaded locally from assets/webfonts/ via @font-face in style.css -->
+    <script>
+        // Instant synchronous check for PWA startup styling gate
+        try {
+            var hasSeen = localStorage.getItem('racunko_has_seen_welcome') === 'true';
+            if (hasSeen) {
+                document.documentElement.classList.add('returning-user');
+            } else {
+                document.documentElement.classList.add('new-user');
+            }
+        } catch (e) {
+            document.documentElement.classList.add('new-user');
+        }
+    </script>
+    <style>
+        /* New User layout constraint (hides nav, forces welcome screen instantly) */
+        html.new-user .main-nav {
+            display: none !important;
+        }
+
+        html.new-user .main-content {
+            margin-bottom: 0 !important;
+            padding-bottom: 0 !important;
+            height: 100vh !important;
+            display: flex;
+            flex-direction: column;
+        }
+
+        html.new-user #view-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        html.new-user #welcome {
+            display: flex !important;
+            flex: 1;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        html.new-user .view:not(#welcome) {
+            display: none !important;
+        }
+
+        /* Returning User constraint (instantly hides welcome view to prevent flash) */
+        html.returning-user #welcome {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Global Loading Overlay (za uvoz podatkov) -->
+    <div id="global-loader" class="global-loader hidden" aria-live="assertive" role="alert">
+        <div class="loader-content">
+            <div class="loader-icon-container">
+                <div class="loader-spinner"></div>
+            </div>
+            <p class="loader-text">Obdelava podatkov...</p>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- Header & Navigation -->
+        <header class="main-nav" id="main-nav" role="banner">
+            <div class="nav-container">
+                <div class="nav-brand">
+                    <a href="#home" class="nav-logo-link" aria-label="Računkomat domov" title="Domov">
+                        <h1 class="nav-title">Računkomat</h1>
+                    </a>
+                </div>
+
+                <nav class="nav-tabs" role="navigation" aria-label="Glavna navigacija">
+                    <a href="#home" class="nav-item active" data-target="home" role="tab" aria-selected="true"
+                        aria-controls="home">
+                        <i class="fa-solid fa-home" aria-hidden="true"></i>
+                        <span class="nav-label">Domov</span>
+                    </a>
+                    <a href="#invoices" class="nav-item" data-target="invoices" role="tab" aria-selected="false"
+                        aria-controls="invoices">
+                        <i class="fa-solid fa-file-invoice" aria-hidden="true"></i>
+                        <span class="nav-label">Računi</span>
+                    </a>
+                    <a href="#analytics" class="nav-item" data-target="analytics" role="tab" aria-selected="false"
+                        aria-controls="analytics">
+                        <i class="fa-solid fa-chart-pie" aria-hidden="true"></i>
+                        <span class="nav-label">Pregled</span>
+                    </a>
+                    <a href="#data" class="nav-item" data-target="data" role="tab" aria-selected="false"
+                        aria-controls="view-data">
+                        <i class="fa-solid fa-database" aria-hidden="true"></i>
+                        <span class="nav-label">Podatki</span>
+                    </a>
+                    <a href="#profile" class="nav-item mobile-only-flex" data-target="profile" role="tab"
+                        aria-selected="false" aria-controls="view-profile">
+                        <i class="fa-solid fa-gear" aria-hidden="true"></i>
+                        <span class="nav-label">Nastavitve</span>
+                    </a>
+                </nav>
+
+                <div class="nav-end">
+                    <time id="top-bar-date" class="top-bar-date" aria-live="polite"></time>
+                    <button class="profile-trigger" id="btn-goto-profile" aria-label="Uporabniški profil"
+                        aria-haspopup="true">
+                        <div class="user-avatar" id="user-avatar-initials">U</div>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+
+            <!-- Dynamic Views -->
+            <div id="view-container" class="view-container">
+                <!-- Welcome View – fullscreen onboarding, nav skrita via body.fullscreen-view-active -->
+                <section id="welcome" class="view" aria-label="Dobrodošlica">
+                    <article class="card card--surface section-card">
+                        <header class="card-header welcome-header">
+                            <div>
+                                <div class="welcome-hero" aria-hidden="true">
+                                    <div class="welcome-logo-ring">
+                                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                                    </div>
+                                </div>
+                                <h2 id="welcome-title" class="welcome-heading"><span
+                                        class="welcome-brand">Računkomat</span></h2>
+                                <p class="welcome-subtitle">Enostavno orodje za izdajanje računov. Deluje 100&nbsp;%
+                                    lokalno, brez oblaka.</p>
+                            </div>
+                        </header>
+
+                        <!-- Feature trio – posamezne kartice -->
+                        <div class="welcome-features">
+                            <div class="welcome-feature">
+                                <div class="welcome-feature-icon blue"><i class="fa-solid fa-bolt"
+                                        aria-hidden="true"></i></div>
+                                <div>
+                                    <strong>Hitro &amp; lokalno</strong>
+                                    <span>Teče v celoti na vaši napravi, brez nalaganja na strežnike.</span>
+                                </div>
+                            </div>
+                            <div class="welcome-feature">
+                                <div class="welcome-feature-icon green"><i class="fa-solid fa-shield-halved"
+                                        aria-hidden="true"></i></div>
+                                <div>
+                                    <strong>100 % zasebno</strong>
+                                    <span>Brez prijav, gesel ali sledilnikov. Vaši podatki ostanejo samo vaši.</span>
+                                </div>
+                            </div>
+                            <div class="welcome-feature">
+                                <div class="welcome-feature-icon yellow"><i class="fa-solid fa-gift"
+                                        aria-hidden="true"></i></div>
+                                <div>
+                                    <strong>Brezplačno</strong>
+                                    <span>Brez omejitev, skritih stroškov, oglasov ali naročnin.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="card-divider">
+
+                        <div class="card-body">
+                            <!-- Personalizacija -->
+                            <div class="welcome-setup-box">
+                                <div class="welcome-name-row">
+                                    <h3 class="welcome-label">Osebna prilagoditev <span
+                                            class="text-muted font-normal text-xs">(neobvezno)</span></h3>
+                                    <p class="welcome-name-hint">Vpišite svoje ime za osebni pozdrav ob vstopu. Podatek
+                                        lahko kadarkoli spremenite v nastavitvah.</p>
+                                    <div class="welcome-input-wrapper">
+                                        <i class="fa-solid fa-user welcome-input-icon"></i>
+                                        <input type="text" id="welcome-name-input"
+                                            class="form-control welcome-name-input" placeholder="Vaše ime"
+                                            maxlength="100" autocomplete="given-name">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Končne akcije -->
+                            <div class="welcome-actions">
+                                <div class="welcome-import-row">
+                                    <p class="welcome-import-label">Že uporabljate Računkomat?</p>
+                                    <input type="file" id="welcome-file-import" accept=".json" class="hidden"
+                                        aria-label="Uvozi varnostno kopijo">
+                                    <button type="button" class="btn welcome-import-btn"
+                                        id="btn-trigger-welcome-import">
+                                        <i class="fa-solid fa-file-import" aria-hidden="true"></i>
+                                        Uvozi podatke
+                                    </button>
+                                </div>
+                                <div class="welcome-start-row">
+                                    <p class="welcome-import-label">Nov uporabnik?</p>
+                                    <button type="button" class="btn btn-primary welcome-btn-start"
+                                        id="btn-welcome-save">
+                                        Začni z uporabo
+                                        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                </section>
+
+                <!-- Navodila View -->
+                <section id="instructions" class="view">
+                    <article class="card card--surface section-card">
+                        <header class="card-header">
+                            <div>
+                                <h3><i class="fa-solid fa-book-open text-primary" aria-hidden="true"></i> Navodila za
+                                    uporabo Računkomata</h3>
+                                <p class="text-muted text-xs">Vodnik skozi vse strani, funkcije in gumbe za hitro in
+                                    učinkovito izdajanje računov.</p>
+                            </div>
+                        </header>
+                        <hr class="card-divider">
+                        <div class="card-body form-stack">
+
+                            <!-- Skupna navodila o delovanju -->
+                            <section class="card card--inset" style="padding: 1.25rem;">
+                                <h4 class="font-bold text-base text-primary" style="margin-bottom: 0.5rem;"><i
+                                        class="fa-solid fa-laptop-code"></i> Osnove in zasebnost podatkov</h4>
+                                <p class="text-sm text-muted" style="line-height: 1.6; margin-bottom: 0.5rem;">
+                                    Računkomat je sodobna in varna spletna aplikacija, ki deluje <strong>100 % lokalno v
+                                        vašem brskalniku</strong> (v shrambi IndexedDB). Vaši podatki se nikoli ne
+                                    prenašajo na spletne strežnike. To vam zagotavlja popolno zasebnost in hitro
+                                    delovanje ter možnost dela brez internetne povezave.
+                                </p>
+                                <p class="text-sm text-muted" style="line-height: 1.6;">
+                                    <strong>Pozor:</strong> Ker so podatki shranjeni lokalno v brskalniku, se ob
+                                    čiščenju podatkov brskalnika ali ponastavitvi naprave podatki lahko izbrišejo.
+                                    Svetujemo vam redno prenašanje varnostnih kopij na zavihku <strong>Podatki</strong>.
+                                </p>
+                            </section>
+
+                            <hr class="card-divider" style="margin-block: 0.75rem;">
+
+                            <!-- Zavihek 1: Domov -->
+                            <section>
+                                <h4 class="font-bold text-base text-main" style="margin-bottom: 0.5rem;"><i
+                                        class="fa-solid fa-home text-primary" aria-hidden="true"></i> 1. Zavihek "Domov"
+                                    (Nadzorna plošča)</h4>
+                                <p class="text-sm text-muted" style="line-height: 1.5; margin-bottom: 0.75rem;">
+                                    Nadzorna plošča ponuja hiter pregled nad vašim poslovanjem ter takojšnje akcije:
+                                </p>
+                                <ul class="benefits-list" style="gap: 0.65rem;">
+                                    <li class="benefit-item">
+                                        <i class="fa-solid fa-square-plus text-primary" style="margin-top: 4px;"></i>
+                                        <div>
+                                            <strong>Gumb "Nov račun" (Modra kartica):</strong> Takoj odpre obrazec za
+                                            ustvarjanje novega računa.
+                                        </div>
+                                    </li>
+                                    <li class="benefit-item">
+                                        <i class="fa-solid fa-chart-line text-success" style="margin-top: 4px;"></i>
+                                        <div>
+                                            <strong>Gumb "Pregled" (Zelena kartica):</strong> Preusmeri vas na stran z
+                                            napredno vizualno analitiko in grafičnim pregledom prodaje po mesecih in
+                                            strankah.
+                                        </div>
+                                    </li>
+                                    <li class="benefit-item">
+                                        <i class="fa-solid fa-circle-info text-warning" style="margin-top: 4px;"></i>
+                                        <div>
+                                            <strong>Zaslon "Izdano letos" (Oranžna kartica):</strong> Prikazuje skupni
+                                            znesek vseh računov v tekočem koledarskem letu. S klikom na gumb <i
+                                                class="fa-solid fa-info"></i> si lahko preberete podrobno pojasnilo o
+                                            pomembnosti tega podatka za normirane s.p. (meja 50.000 € oz. 100.000
+                                            €).
+                                        </div>
+                                    </li>
+                                    <li class="benefit-item">
+                                        <i class="fa-solid fa-clock text-purple" style="margin-top: 4px;"></i>
+                                        <div>
+                                            <strong>Zaslon "Neplačano" (Vijolična kartica):</strong> Prikazuje skupno
+                                            neodplačano vsoto računov. S klikom na gumb <i class="fa-solid fa-info"></i>
+                                            dobite podrobnosti o statusu neplačanih računov.
+                                        </div>
+                                    </li>
+                                    <li class="benefit-item">
+                                        <i class="fa-solid fa-clock-rotate-left text-muted"
+                                            style="margin-top: 4px;"></i>
+                                        <div>
+                                            <strong>Razdelek "Nedavni računi":</strong> Prikazuje zadnjih pet izdanih
+                                            računov za hiter dostop. Klik na katero koli vrstico vas takoj popelje v
+                                            urejanje tega računa. Gumb <strong>"Poglej vse"</strong> vas preusmeri na
+                                            celoten seznam.
+                                        </div>
+                                    </li>
+                                </ul>
+                            </section>
+
+                            <hr class="card-divider" style="margin-block: 0.75rem;">
+
+                            <!-- Zavihek 2: Izdajanje Računa -->
+                            <section>
+                                <h4 class="font-bold text-base text-main" style="margin-bottom: 0.5rem;"><i
+                                        class="fa-solid fa-file-invoice-dollar text-success" aria-hidden="true"></i> 2.
+                                    Obrazec za ustvarjanje in urejanje računov</h4>
+                                <p class="text-sm text-muted" style="line-height: 1.5; margin-bottom: 0.75rem;">
+                                    Ta obrazec se odpre, ko kliknete <strong>"Nov račun"</strong> ali urejate
+                                    obstoječega. Razdeljen je na naslednje sklope:
+                                </p>
+                                <ul class="benefits-list" style="gap: 0.65rem;">
+                                    <li class="benefit-item">
+                                        <i class="fa-solid fa-angle-right text-success" style="margin-top: 4px;"></i>
+                                        <div>
+                                            <strong>1. Izberi izdajatelja (Moje podjetje):</strong> Izberite profil
+                                            svojega podjetja. Če ga še niste ustvarili, kliknite na gumb <i
+                                                class="fa-solid fa-plus"></i> na desni strani seznama in ga hitro
+                                            dodajte brez zapuščanja obrazca.
+                                        </div>
+                                    </li>
+                                    <li class="benefit-item">
+                                        <i class="fa-solid fa-angle-right text-success" style="margin-top: 4px;"></i>
+                                        <div>
+                                            <strong>2. Izberi stranko (Plačnik):</strong> Izberite kupca/stranko. Z
+                                            gumbom <i class="fa-solid fa-plus"></i> lahko na mestu dodate novega
+                                            partnerja v bazo.
+                                        </div>
+                                    </li>
+                                    <li class="benefit-item">
+                                        <i class="fa-solid fa-angle-right text-success" style="margin-top: 4px;"></i>
+                                        <div>
+                                            <strong>3. Podatki računa:</strong>
+                                            <ul
+                                                style="list-style: circle; padding-left: 1.25rem; margin-top: 0.25rem; gap: 0.35rem; display: flex; flex-direction: column;">
+                                                <li><strong>Številka računa:</strong> Generira se samodejno na podlagi
+                                                    datuma (format LLLL-MM-NNNNN), lahko pa jo vpišete poljubno.</li>
+                                                <li><strong>Datumi:</strong> Določite datum izdaje, zapadlosti ter
+                                                    obdobje opravljanja storitev.</li>
+                                                <li><strong>Sklic:</strong> Ponuja modele kot so <strong>SI00</strong>
+                                                    (brez kontrolne številke), <strong>SI12</strong> (samodejno izračuna
+                                                    kontrolno številko iz številke računa) ali <strong>SI99</strong>.
+                                                    Kliknite na gumb <i class="fa-solid fa-circle-info"></i> za
+                                                    podrobnejša navodila o izračunu kontrolne številke.</li>
+                                                <li><strong>Združi račun z UPN obrazcem:</strong> Stikalo omogoči
+                                                    samodejno dodajanje UPN plačilnega naloga na zadnjo stran PDF
+                                                    računa. Pripravi se polno veljavna QR koda s standardom IPS, ki jo
+                                                    stranke lahko skenirajo z mobilno banko.</li>
+                                            </ul>
+                                        </div>
+                                    </li>
+                                    <li class="benefit-item">
+                                        <i class="fa-solid fa-angle-right text-success" style="margin-top: 4px;"></i>
+                                        <div>
+                                            <strong>4. Postavke računa:</strong> Vnesite opis, količino, enoto, ceno in
+                                            stopnjo DDV. Vrednosti neto in bruto se preračunajo samodejno.
+                                            <ul
+                                                style="list-style: circle; padding-left: 1.25rem; margin-top: 0.25rem; gap: 0.35rem; display: flex; flex-direction: column;">
+                                                <li>Gumb <strong>"Dodaj postavko"</strong> ustvari nova vrstico za vnos.
+                                                </li>
+                                                <li>Ikona koša (na koncu vrstice) izbriše posamezno postavko.</li>
+                                                <li>Ob vnosu opisa vam sistem predlaga prednastavljene storitve iz
+                                                    vašega cenika (če jih imate shranjene).</li>
+                                            </ul>
+                                        </div>
+                                    </li>
+                                    <li class="benefit-item">
+                                        <i class="fa-solid fa-angle-right text-success" style="margin-top: 4px;"></i>
+                                        <div>
+                                            <strong>Spodnja vrstica z akcijami (Gumbi):</strong>
+                                            <ul
+                                                style="list-style: circle; padding-left: 1.25rem; margin-top: 0.25rem; gap: 0.35rem; display: flex; flex-direction: column;">
+                                                <li><strong>Gumb "Predogled PDF" (<i
+                                                            class="fa-solid fa-eye"></i>):</strong> Odpre modalno okno s
+                                                    trenutnim predogledom računa in UPN naloga.</li>
+                                                <li><strong>Gumb "Prenesi PDF" (<i
+                                                            class="fa-solid fa-download"></i>):</strong> Prenese PDF
+                                                    datoteko računa neposredno v vašo napravo.</li>
+                                                <li><strong>Gumb "Shrani račun" (<i
+                                                            class="fa-solid fa-check"></i>):</strong> Shrani račun v
+                                                    lokalno bazo in vas vrne na seznam računov.</li>
+                                            </ul>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </section>
+
+                            <hr class="card-divider" style="margin-block: 0.75rem;">
+
+                            <!-- Zavihek 3: Seznam Računov -->
+                            <section>
+                                <h4 class="font-bold text-base text-main" style="margin-bottom: 0.5rem;"><i
+                                        class="fa-solid fa-list text-primary" aria-hidden="true"></i> 3. Zavihek
+                                    "Računi" (Upravljanje računov)</h4>
+                                <p class="text-sm text-muted" style="line-height: 1.5; margin-bottom: 0.75rem;">
+                                    Tukaj se nahaja celotna zbirka vaših izdanih računov z možnostjo filtriranja,
+                                    iskanja in urejanja:
+                                </p>
+                                <ul class="benefits-list" style="gap: 0.65rem;">
+                                    <li class="benefit-item">
+                                        <i class="fa-solid fa-filter text-primary" style="margin-top: 4px;"></i>
+                                        <div>
+                                            <strong>Filtriranje računov:</strong> Kliknite na vrstico s filtri, da jo
+                                            razširite. Nastavite lahko iskanje po besedilu, filtriranje po stranki,
+                                            statusu plačila (Plačano / Odprto), datumu izdaje ali znesku. Gumb
+                                            <strong>"Počisti filtre"</strong> ponastavi vse nastavitve na privzete.
+                                        </div>
+                                    </li>
+                                    <li class="benefit-item">
+                                        <i class="fa-solid fa-sort text-primary" style="margin-top: 4px;"></i>
+                                        <div>
+                                            <strong>Razvrščanje tabele:</strong> Kliknite na glavo stolpca (npr.
+                                            "Št. računa", "Plačnik", "Datum izdaje", "Bruto (€)"), da razvrstite
+                                            podatke naraščajoče ali padajoče.
+                                        </div>
+                                    </li>
+                                    <li class="benefit-item">
+                                        <i class="fa-solid fa-gear text-primary" style="margin-top: 4px;"></i>
+                                        <div>
+                                            <strong>Gumbi za akcije v vsaki vrstici računa:</strong>
+                                            <ul
+                                                style="list-style: circle; padding-left: 1.25rem; margin-top: 0.25rem; gap: 0.35rem; display: flex; flex-direction: column;">
+                                                <li><strong>Gumb z ikono očesa (<i
+                                                            class="fa-solid fa-eye"></i>):</strong> Hitro odpre
+                                                    predogled PDF dokumenta.</li>
+                                                <li><strong>Gumb z ikono svinčnika (<i
+                                                            class="fa-solid fa-pencil"></i>):</strong> Odpre urejevalnik
+                                                    računa za morebitne popravke.</li>
+                                                <li><strong>Gumb s kljukico (<i
+                                                            class="fa-solid fa-check"></i>):</strong> Hitro preklopi
+                                                    status plačila (če je plačan, se obarva zeleno; če je neplačan,
+                                                    ostane oranžen).</li>
+                                                <li><strong>Gumb z ikono koša (<i
+                                                            class="fa-solid fa-trash"></i>):</strong> Trajno izbriše
+                                                    račun iz lokalne baze (potrebna je potrditev).</li>
+                                            </ul>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </section>
+
+                            <hr class="card-divider" style="margin-block: 0.75rem;">
+
+                            <!-- Zavihek 4: Analitika -->
+                            <section>
+                                <h4 class="font-bold text-base text-main" style="margin-bottom: 0.5rem;"><i
+                                        class="fa-solid fa-chart-pie text-success" aria-hidden="true"></i> 4. Zavihek
+                                    "Pregled" (Poslovna analitika)</h4>
+                                <p class="text-sm text-muted" style="line-height: 1.5; margin-bottom: 0.5rem;">
+                                    Ponuja podroben in vizualen grafični prikaz poslovanja. Vsebuje grafe za mesečne
+                                    prihodke in porazdelitev prihodkov po strankah.
+                                </p>
+                                <p class="text-sm text-muted" style="line-height: 1.5;">
+                                    <strong>Filtri v analitiki:</strong> Nastavite lahko obdobje (izbira leta ali
+                                    specifičnega meseca), s čimer se grafi in statistične kartice posodobijo izključno
+                                    za izbrano obdobje, kar vam omogoča natančno pripravo podatkov za računovodstvo.
+                                </p>
+                            </section>
+
+                            <hr class="card-divider" style="margin-block: 0.75rem;">
+
+                            <!-- Zavihek 5: Podatki -->
+                            <section>
+                                <h4 class="font-bold text-base text-main" style="margin-bottom: 0.5rem;"><i
+                                        class="fa-solid fa-database text-warning" aria-hidden="true"></i> 5. Zavihek
+                                    "Podatki" (Upravljanje šifrantov in baze)</h4>
+                                <p class="text-sm text-muted" style="line-height: 1.5; margin-bottom: 0.75rem;">
+                                    Namenjen je urejanju vaših šifrantov in upravljanju celotne podatkovne baze:
+                                </p>
+                                <ul class="benefits-list" style="gap: 0.65rem;">
+                                    <li class="benefit-item">
+                                        <i class="fa-solid fa-building text-warning" style="margin-top: 4px;"></i>
+                                        <div>
+                                            <strong>Moje podjetje:</strong> Upravljajte s profili svojih podjetij. Z
+                                            gumbom <strong>"Novo podjetje"</strong> dodate novo podjetje (ime, naslov,
+                                            davčna št., registracijska št., IBAN banka in podpis).
+                                        </div>
+                                    </li>
+                                    <li class="benefit-item">
+                                        <i class="fa-solid fa-users text-warning" style="margin-top: 4px;"></i>
+                                        <div>
+                                            <strong>Partnerji (Stranke):</strong> Upravljajte s strankami. Z gumbom
+                                            <strong>"Nov partner"</strong> dodate kupca. Za hitrejše iskanje uporabite
+                                            iskalno polje na vrhu kartice.
+                                        </div>
+                                    </li>
+                                    <li class="benefit-item">
+                                        <i class="fa-solid fa-tags text-warning" style="margin-top: 4px;"></i>
+                                        <div>
+                                            <strong>Storitve (Cenik):</strong> Ustvarite seznam svojih storitev z
+                                            vnaprej določenimi cenami, enotami in stopnjami DDV z gumbom <strong>"Nova
+                                                storitev"</strong>. To vam bo prihranilo čas pri pisanju postavk.
+                                        </div>
+                                    </li>
+                                    <li class="benefit-item">
+                                        <i class="fa-solid fa-sliders text-warning" style="margin-top: 4px;"></i>
+                                        <div>
+                                            <strong>Upravljanje podatkov (Uvoz/Izvoz/Izbris):</strong>
+                                            <ul
+                                                style="list-style: circle; padding-left: 1.25rem; margin-top: 0.25rem; gap: 0.35rem; display: flex; flex-direction: column;">
+                                                <li><strong>Gumb "Prenesi podatke":</strong> Prenese celotno bazo v
+                                                    obliki varnostne kopije `.json`.</li>
+                                                <li><strong>Gumb "Naloži podatke":</strong> Omogoči uvoz varnostne
+                                                    kopije. Pozor: to dejanje prepiše trenutne podatke na napravi.</li>
+                                                <li><strong>Gumb "Izbriši vse podatke" (Rdeči gumb):</strong> Popolnoma
+                                                    očisti lokalno shrambo IndexedDB. Tega dejanja ni mogoče
+                                                    razveljaviti.</li>
+                                            </ul>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </section>
+
+                            <hr class="card-divider" style="margin-block: 0.75rem;">
+
+                            <!-- Zavihek 6: Nastavitve -->
+                            <section>
+                                <h4 class="font-bold text-base text-main" style="margin-bottom: 0.5rem;"><i
+                                        class="fa-solid fa-gear text-purple" aria-hidden="true"></i> 6. Zavihek
+                                    "Nastavitve" (Profil in sistemski status)</h4>
+                                <p class="text-sm text-muted" style="line-height: 1.5; margin-bottom: 0.75rem;">
+                                    Zavihek, ki ga odprete s klikom na profilno sliko/začetnico v desnem zgornjem kotu
+                                    (ali prek navigacije na mobilnih negativah), vsebuje nastavitve za prilagajanje
+                                    videza in delovanja aplikacije:
+                                </p>
+                                <ul class="benefits-list" style="gap: 0.65rem;">
+                                    <li class="benefit-item">
+                                        <i class="fa-solid fa-user-pen text-purple" style="margin-top: 4px;"></i>
+                                        <div>
+                                            <strong>Polje "Vaše ime":</strong> Vnesite ime za osebni pozdrav na domači
+                                            strani.
+                                        </div>
+                                    </li>
+                                    <li class="benefit-item">
+                                        <i class="fa-solid fa-toggle-on text-purple" style="margin-top: 4px;"></i>
+                                        <div>
+                                            <strong>Checkbox "Pokaži pozdrav na domači strani":</strong> Omogoči ali
+                                            onemogoči prikaz prijaznega pozdrava na nadzorni plošči.
+                                        </div>
+                                    </li>
+                                    <li class="benefit-item">
+                                        <i class="fa-solid fa-qrcode text-purple" style="margin-top: 4px;"></i>
+                                        <div>
+                                            <strong>Checkbox "Samodejno dodaj UPN naloge":</strong> Ko je to stikalo
+                                            vklopljeno, bo pri vsakem novem računu stikalo za UPN nalog privzeto že
+                                            vključeno.
+                                        </div>
+                                    </li>
+                                    <li class="benefit-item">
+                                        <i class="fa-solid fa-palette text-purple" style="margin-top: 4px;"></i>
+                                        <div>
+                                            <strong>Barva aplikacije in Tema:</strong> Izberite barvo poudarkov
+                                            aplikacije (branding) ter nastavite temno, svetlo ali sistemsko barvno
+                                            shemo. Vse nastavitve se shranijo samodejno ob spremembi (auto-save).
+                                        </div>
+                                    </li>
+                                    <li class="benefit-item">
+                                        <i class="fa-solid fa-database text-purple" style="margin-top: 4px;"></i>
+                                        <div>
+                                            <strong>Status in shramba:</strong> Tukaj lahko spremljate zasedenost
+                                            spomina IndexedDB na vaši napravi in status internetne povezave (aplikacija
+                                            vas opozori, če niste povezani).
+                                        </div>
+                                    </li>
+                                </ul>
+                            </section>
+                        </div>
+                        <footer class="sticky-action-bar">
+                            <div class="sticky-actions">
+                                <button class="btn btn-outline" type="button" data-action="go-back">
+                                    <i class="fa-solid fa-chevron-left"></i> Nazaj na predhodno stran
+                                </button>
+                            </div>
+                        </footer>
+                    </article>
+                </section>
+
+                <!-- Home View -->
+                <section id="home" class="view">
+                    <div class="page-content">
+                        <!-- Subtle Greeting -->
+                        <div id="greeting-wrapper" class="greeting-card">
+                            <h2 id="home-greeting">Pozdravljeni, <span id="display-name"></span>!</h2>
+                            <p class="text-muted">Dobrodošli nazaj v vaš poslovni pregled.</p>
+                        </div>
+
+                        <!-- Action & Stats Grid -->
+                        <div class="stats-grid" id="home-action-grid">
+                            <!-- Card 1: New Invoice (Primary Action) -->
+                            <article class="card card--highlight stat-card blue interactive-card"
+                                id="btn-home-new-invoice-card" role="button" aria-label="Ustvari nov račun" tabindex="0"
+                                data-action="new-invoice">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-info">
+                                        <h3>Nov račun</h3>
+                                    </div>
+                                    <div class="stat-card-icon"><i class="fa-solid fa-plus-circle"></i></div>
+                                </div>
+                                <p class="stat-value"><i class="fa-solid fa-plus" aria-hidden="true"></i></p>
+                                <small class="stat-card-footer">Ustvari nov dokument</small>
+                            </article>
+
+                            <!-- Card 2: Analytics Link -->
+                            <article class="card card--highlight stat-card green interactive-card"
+                                id="btn-home-view-analytics" role="button" aria-label="Odpri pregled" tabindex="0"
+                                data-action="view-analytics">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-info">
+                                        <h3>Pregled</h3>
+                                    </div>
+                                    <div class="stat-card-icon"><i class="fa-solid fa-chart-pie"></i></div>
+                                </div>
+                                <p class="stat-value"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></p>
+                                <small class="stat-card-footer">Statistika poslovanja</small>
+                            </article>
+
+                            <!-- Card 3: Annual Revenue YTD -->
+                            <article class="card card--highlight stat-card orange">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-info">
+                                        <h3>Izdano letos</h3>
+                                    </div>
+                                    <div class="stat-card-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                                </div>
+                                <data class="stat-value" id="home-annual-revenue" value="0">0,00 €</data>
+                                <div class="stat-card-footer-container">
+                                    <small class="stat-card-footer">V tem letu (YTD)</small>
+                                    <button type="button" class="btn-stat-info" aria-label="Pojasnilo"
+                                        data-title="Izdano letos"
+                                        data-desc="Seštevek zneskov vseh izdanih računov v tekočem letu (tudi neplačanih). To je ključen podatek za preverjanje limita 50.000 € pri normiranem s.p."
+                                        popovertarget="modal-stat-info"><i class="fa-solid fa-info"
+                                            aria-hidden="true"></i></button>
+                                </div>
+                            </article>
+
+                            <!-- Card 4: Unpaid Amount -->
+                            <article class="card card--highlight stat-card purple">
+                                <div class="stat-card-header">
+                                    <div class="stat-card-info">
+                                        <h3>Neplačano</h3>
+                                    </div>
+                                    <div class="stat-card-icon"><i class="fa-solid fa-clock"></i></div>
+                                </div>
+                                <data class="stat-value" id="home-overdue-amount" value="0">0,00 €</data>
+                                <div class="stat-card-footer-container">
+                                    <small class="stat-card-footer">Skupaj odprto v plačilu</small>
+                                    <button type="button" class="btn-stat-info" aria-label="Pojasnilo"
+                                        data-title="Neplačani računi"
+                                        data-desc="Skupni znesek vseh izdanih računov, ki še nimajo označenega statusa 'Plačano'. Prikazuje znesek, ki ga še pričakujete od strank."
+                                        popovertarget="modal-stat-info"><i class="fa-solid fa-info"
+                                            aria-hidden="true"></i></button>
+                                </div>
+                            </article>
+                        </div>
+
+                        <!-- Recent Invoices -->
+                        <article class="card card--surface section-card">
+                            <header class="card-header" id="home-recent-head">
+                                <div>
+                                    <h3><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Nedavni računi
+                                    </h3>
+                                    <p class="text-muted text-xs">Pregled zadnjih petih izdanih računov za hiter dostop.
+                                    </p>
+                                </div>
+                                <div class="card-header-actions">
+                                    <button id="link-view-all-invoices" class="btn btn-outline btn-sm">
+                                        Poglej vse <i class="fa-solid fa-arrow-right"></i>
+                                    </button>
+                                </div>
+                            </header>
+                            <hr class="card-divider">
+                            <div id="home-recent-invoices" class="items-list">
+                                <div class="invoice-card skeleton skeleton-invoice-card"></div>
+                                <div class="invoice-card skeleton skeleton-invoice-card"></div>
+                                <div class="invoice-card skeleton skeleton-invoice-card"></div>
+                            </div>
+                        </article>
+
+                        <!-- Navodila in pomoč hitri dostop -->
+                        <article class="card help-quick-card">
+                            <div class="help-quick-card-body">
+                                <div class="help-quick-card-icon">
+                                    <i class="fa-solid fa-book-open" aria-hidden="true"></i>
+                                </div>
+                                <div class="help-quick-card-content">
+                                    <h3 class="help-quick-card-title">Pomoč in navodila</h3>
+                                    <p class="help-quick-card-desc text-muted text-xs">
+                                        Potrebujete pomoč pri delu z aplikacijo? Preberite izčrpen in enostaven vodnik
+                                        skozi vse funkcije, strani in gumbe na Računkomatu.
+                                    </p>
+                                </div>
+                                <div class="help-quick-card-action">
+                                    <a href="#instructions" class="btn btn-primary btn-sm"
+                                        title="Preberi navodila za uporabo">
+                                        Preberi navodila <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <!-- Invoices View -->
+                <section id="invoices" class="view">
+                    <article class="card card--surface section-card">
+                        <header class="card-header">
+                            <div>
+                                <h3><i class="fa-solid fa-list" aria-hidden="true"></i> Seznam računov</h3>
+                                <p class="text-muted text-xs">Upravljajte z vsemi svojimi računi, filtrirajte in
+                                    izvažajte v PDF.</p>
+                            </div>
+                            <button id="btn-new-invoice" class="btn btn-primary">
+                                <i class="fa-solid fa-plus"></i> Nov račun
+                            </button>
+                        </header>
+                        <hr class="card-divider">
+
+
+
+                        <!-- Collapsible Filter Section -->
+                        <div class="collapsible-section" id="invoiceFilterCollapsible">
+                            <button class="collapsible-trigger" aria-expanded="false"
+                                aria-controls="invoiceFiltersContent" aria-label="Prikaži filtre računov">
+                                <span><i class="fa-solid fa-filter" aria-hidden="true"></i> Filtriranje računov</span>
+                                <i class="fa-solid fa-chevron-down collapsible-icon" aria-hidden="true"></i>
+                            </button>
+                            <div class="collapsible-content" id="invoiceFiltersContent" aria-hidden="true">
+                                <div class="invoice-filters-container">
+                                    <div class="form-group">
+                                        <label for="filterSearchTerm">Išči (št. računa, plačnik...)</label>
+                                        <input type="text" id="filterSearchTerm" class="form-control"
+                                            placeholder="Vnesi iskalni niz...">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="filterPartner">Plačnik</label>
+                                        <select id="filterPartner" class="form-control">
+                                            <!-- Dynamically populated -->
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="filterStatus">Status</label>
+                                        <select id="filterStatus" class="form-control">
+                                            <option value="">Vsi statusi</option>
+                                            <option value="paid">Plačano</option>
+                                            <option value="unpaid">Odprto</option>
+                                        </select>
+                                    </div>
+                                    <div class="invoice-filter-row">
+                                        <div class="form-group">
+                                            <label for="filterDateFrom">Datum izdaje od</label>
+                                            <input type="date" id="filterDateFrom" class="form-control">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="filterDateTo">Datum izdaje do</label>
+                                            <input type="date" id="filterDateTo" class="form-control">
+                                        </div>
+                                    </div>
+                                    <div class="invoice-filter-row">
+                                        <div class="form-group">
+                                            <label for="filterAmountFrom">Znesek od (€)</label>
+                                            <input type="number" id="filterAmountFrom" class="form-control"
+                                                placeholder="0.00" step="0.01" min="0">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="filterAmountTo">Znesek do (€)</label>
+                                            <input type="number" id="filterAmountTo" class="form-control"
+                                                placeholder="1000.00" step="0.01" min="0">
+                                        </div>
+                                    </div>
+                                    <div class="invoice-filter-actions">
+                                        <button id="resetFiltersBtn" class="btn btn-outline"><i
+                                                class="fa-solid fa-rotate-left"></i> Počisti filtre</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Invoices Table -->
+                        <div id="invoices-list-container">
+                            <div class="table-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="sortable-header" data-sort-key="number" role="button"
+                                                tabindex="0">Št. računa <i class="sort-icon fa-solid fa-sort"></i></th>
+                                            <th class="sortable-header" data-sort-key="partnerId" role="button"
+                                                tabindex="0">Plačnik <i class="sort-icon fa-solid fa-sort"></i></th>
+                                            <th class="sortable-header" data-sort-key="dateIssued" role="button"
+                                                tabindex="0">Datum izdaje <i class="sort-icon fa-solid fa-sort"></i>
+                                            </th>
+                                            <th class="sortable-header" data-sort-key="netTotal" role="button"
+                                                tabindex="0">Neto (€) <i class="sort-icon fa-solid fa-sort"></i></th>
+                                            <th class="sortable-header" data-sort-key="grossTotal" role="button"
+                                                tabindex="0">Bruto (€) <i class="sort-icon fa-solid fa-sort"></i></th>
+                                            <th class="sortable-header" data-sort-key="status" role="button"
+                                                tabindex="0">Status <i class="sort-icon fa-solid fa-sort"></i></th>
+                                            <th>Akcije</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="invoices-table-body">
+                                        <!-- JS will inject rows here -->
+                                    </tbody>
+                                </table>
+                            </div>
+
+                        </div>
+                    </article>
+                </section>
+
+                <!-- Inline Invoice Creator -->
+                <section id="view-invoice-form" class="view">
+                    <article class="card card--surface section-card">
+                        <header class="card-header">
+                            <button class="btn btn-back" id="btn-close-invoice" type="button" aria-label="Nazaj">
+                                <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+                                <span>Nazaj</span>
+                            </button>
+                            <h2 id="invoice-form-title">Nov račun</h2>
+                            <div class="sub-view-actions"></div>
+                        </header>
+                        <form id="new-invoice-form">
+                            <div class="card-body form-stack">
+                                <!-- 1. ISSUER SECTION -->
+                                <div class="form-group-spaced">
+                                    <div class="section-title-outside">
+                                        <label>1. Izberi izdajatelja (Moje podjetje)</label>
+                                    </div>
+                                    <div class="form-group">
+                                        <small class="text-muted">Izberite podjetje iz seznama ali ustvarite novega
+                                            s
+                                            klikom na gumb +</small>
+                                        <div class="input-group">
+                                            <select id="inv-company" class="form-control">
+                                                <option value="">Izberi podjetje...</option>
+                                            </select>
+                                            <button type="button" class="btn btn-outline" id="btn-toggle-inline-company"
+                                                title="Dodaj novo podjetje" aria-label="Dodaj novo podjetje">
+                                                <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div id="issuer-info-display" class="issuer-info-box hidden">
+                                        <!-- Populated by JS -->
+                                    </div>
+                                </div>
+
+                                <!-- 2. PARTNER SECTION -->
+                                <hr class="card-divider section-divider">
+                                <div class="form-group-spaced">
+                                    <div class="section-title-outside">
+                                        <label>2. Izberi stranko (Plačnik)</label>
+                                    </div>
+                                    <div class="form-group">
+                                        <small class="text-muted">Izberite stranko iz seznama ali dodajte novo s
+                                            klikom
+                                            na gumb +</small>
+                                        <div class="input-group">
+                                            <select id="inv-partner" class="form-control" aria-label="Izberi stranko">
+                                                <option value="">Izberi stranko...</option>
+                                            </select>
+                                            <button type="button" class="btn btn-outline" id="btn-toggle-inline-partner"
+                                                title="Dodaj novo stranko" aria-label="Dodaj novega partnerja">
+                                                <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div id="partner-info-display" class="issuer-info-box hidden"></div>
+                                </div>
+
+                                <!-- 3. DATES & DETAILS -->
+                                <hr class="card-divider section-divider">
+                                <div class="form-group-spaced">
+                                    <div class="section-title-outside">
+                                        <label>3. Podatki računa</label>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="label-with-addon">
+                                            <span>Številka računa</span>
+                                            <button type="button" class="btn-info-circle"
+                                                title="Format: LLLL-MM-NNNNN (npr. 2026-03-00001). Lahko vpišete tudi poljubno številko."
+                                                aria-label="Pomoč za format številke računa">
+                                                <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                                            </button>
+                                        </label>
+                                        <input type="text" id="inv-custom-number" class="form-control"
+                                            placeholder="npr. 2026-03-00001" maxlength="30">
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label>Datum izdaje</label>
+                                            <input type="date" id="inv-date" class="form-control">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Datum zapadlosti</label>
+                                            <input type="date" id="inv-due-date" class="form-control">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Storitve opravljene od</label>
+                                            <input type="date" id="inv-date-service-from" class="form-control">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Storitve opravljene do</label>
+                                            <input type="date" id="inv-date-service-to" class="form-control">
+                                        </div>
+                                    </div>
+                                    <div class="form-group no-margin-top">
+                                        <small class="text-muted furs-note">Zadnji datum dobave se upošteva za FURS
+                                            bazo.</small>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group flex-2">
+                                            <label class="label-with-addon">
+                                                <span>Sklic</span>
+                                                <button type="button" class="btn-info-circle" id="btn-help-sklic"
+                                                    title="Pomoč pri sklicu" aria-label="Prikaži pomoč pri sklicu"
+                                                    popovertarget="modal-sklic-info">
+                                                    <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                                                </button>
+                                            </label>
+                                            <div class="ref-model-group">
+                                                <input type="text" id="inv-ref-model"
+                                                    class="form-control ref-model-prefix" list="ref-models-list"
+                                                    placeholder="SI00" value="SI00" maxlength="10">
+                                                <span class="text-muted ref-model-separator">-</span>
+                                                <input type="text" id="inv-ref-number"
+                                                    class="form-control ref-model-number" placeholder="1234567"
+                                                    maxlength="30">
+                                                <datalist id="ref-models-list">
+                                                    <option value="SI00">
+                                                    <option value="SI01">
+                                                    <option value="SI12">
+                                                    <option value="SI99">
+                                                </datalist>
+                                            </div>
+                                        </div>
+                                        <div class="form-group flex-1">
+                                            <label class="label-with-addon">
+                                                <span>Koda namena plačila</span>
+                                                <button type="button" class="btn-info-circle"
+                                                    title="4-znakovni ISO 20022 namen (npr. GDSV za blago/storitve)"
+                                                    aria-label="Pomoč za kodo namena plačila">
+                                                    <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                                                </button>
+                                            </label>
+                                            <select id="inv-purpose-code" class="form-control">
+                                                <option value="GDSV">GDSV – Blago in storitve</option>
+                                                <option value="OTHR">OTHR – Drugo</option>
+                                                <option value="SCVE">SCVE – Storitve</option>
+                                                <option value="RENT">RENT – Najem</option>
+                                                <option value="SALA">SALA – Plača</option>
+                                                <option value="SUPP">SUPP – Dobava</option>
+                                                <option value="INVS">INVS – Naložba</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <article class="upn-switch-card">
+                                            <div class="form-switch-group">
+                                                <label class="form-switch" for="inv-include-upn-slip">
+                                                    <input type="checkbox" id="inv-include-upn-slip">
+                                                    <span class="slider"></span>
+                                                </label>
+                                                <label for="inv-include-upn-slip" class="switch-label font-bold">Združi
+                                                    račun z UPN obrazcem</label>
+                                            </div>
+                                            <small class="upn-help-text">Na zadnjo stran PDF računa pripne polno
+                                                veljaven UPN nalog.</small>
+                                            <div id="upn-settings-panel" class="upn-details-panel hidden">
+                                                <label class="form-label control-label font-bold text-xs">Koda
+                                                    namena za
+                                                    UPN</label>
+                                                <div class="input-group">
+                                                    <input type="text" id="inv-upn-purpose-code" class="form-control"
+                                                        maxlength="4" placeholder="GDSV" value="GDSV">
+                                                    <button type="button" class="btn-info-circle"
+                                                        title="4-znakovna koda (ISO 20022), npr. GDSV, OTHR.">
+                                                        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </article>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Opomba (vsebina na računu)</label>
+                                        <input type="text" id="inv-notes" class="form-control"
+                                            placeholder="npr. Hvala za sodelovanje!" maxlength="500">
+                                    </div>
+                                </div>
+                                <!-- /3. Podatki računa -->
+
+                                <!-- 4. Korak: Postavke -->
+                                <hr class="card-divider section-divider">
+                                <div class="items-section form-group-spaced">
+                                    <div class="section-title-outside">
+                                        <label>4. Postavke računa</label>
+                                    </div>
+                                    <div class="items-table-grid">
+                                        <div class="items-header-row">
+                                            <div class="col-index">#</div>
+                                            <div class="col-desc">Opis storitve</div>
+                                            <div class="col-qty">Kol.</div>
+                                            <div class="col-unit">Enota</div>
+                                            <div class="col-price">Cena/en. (€)</div>
+                                            <div class="col-tax">DDV (%)</div>
+                                            <div class="col-neto">Neto (€)</div>
+                                            <div class="col-tax-amount">DDV (€)</div>
+                                            <div class="col-total">Bruto (€)</div>
+                                            <div class="col-action"></div>
+                                        </div>
+                                        <div id="inv-items-list" class="items-container-styled">
+                                            <!-- Items will be injected here -->
+                                        </div>
+                                    </div>
+
+                                    <div class="invoice-item-actions">
+                                        <button type="button" class="btn btn-sm btn-outline" id="btn-add-item">
+                                            <i class="fa-solid fa-plus"></i> Dodaj storitev
+                                        </button>
+                                    </div>
+
+                                </div>
+
+                                <!-- 5. Skupaj in izdaja -->
+                                <hr class="card-divider section-divider">
+                                <div class="form-group-spaced" style="padding-bottom: 2rem;">
+                                    <div class="section-title-outside">
+                                        <label>5. Skupaj in izdaja</label>
+                                    </div>
+                                    <p class="text-muted text-sm" style="font-size: 0.85rem; margin-top: 0.5rem;">
+                                        Preglejte končni znesek in uporabite gumbe spodaj za shranjevanje, prenos ali
+                                        predogled računa.</p>
+                                </div>
+
+                            </div>
+                            <div class="sticky-action-bar">
+                                <div class="sticky-total">
+                                    <span class="text-muted">Skupaj:</span>
+                                    <strong id="inv-total-display">0,00 €</strong>
+                                </div>
+                                <div class="sticky-actions">
+                                    <button type="button" class="btn btn-outline" id="btn-cancel-invoice"
+                                        aria-label="Prekliči">
+                                        <i class="fa-solid fa-xmark" aria-hidden="true"></i> Prekliči
+                                    </button>
+                                    <button type="button" class="btn btn-outline" id="btn-preview-invoice"
+                                        title="Predogled PDF" aria-label="Predogled PDF">
+                                        <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline" id="btn-download-invoice"
+                                        title="Direkten prenos PDF" aria-label="Prenos PDF">
+                                        <i class="fa-solid fa-download" aria-hidden="true"></i>
+                                    </button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fa-solid fa-save" aria-hidden="true"></i>
+                                        <span id="btn-save-label">Izdaj račun</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </article>
+                </section>
+                <!-- End Invoice Form Sub-View -->
+
+                <!-- Analytics View -->
+                <section id="analytics" class="view">
+                    <div class="content-header">
+                        <div class="actions ml-auto">
+                            <select id="analytics-year" class="form-control" aria-label="Izberi leto pregleda">
+                                <!-- Dynamically populated -->
+                            </select>
+                        </div>
+                    </div>
+
+
+                    <!-- KPI Cards -->
+                    <div class="stats-grid">
+                        <article class="card card--highlight stat-card blue">
+                            <div class="stat-card-header">
+                                <div class="stat-card-info">
+                                    <h3>Skupni prihodki</h3>
+                                </div>
+                                <div class="stat-card-icon"><i class="fa-solid fa-euro-sign"></i></div>
+                            </div>
+                            <data class="stat-value" id="stat-total-revenue" value="0">0,00 €</data>
+                            <div class="stat-card-footer-container">
+                                <small class="stat-card-footer">Vsi zabeleženi prihodki</small>
+                                <button type="button" class="btn-stat-info" aria-label="Pojasnilo"
+                                    data-title="Skupni prihodki"
+                                    data-desc="Celoten znesek vseh izdanih računov za to leto. Vključuje tako plačane kot neplačane zneske."
+                                    popovertarget="modal-stat-info"><i class="fa-solid fa-info"
+                                        aria-hidden="true"></i></button>
+                            </div>
+                        </article>
+                        <article class="card card--highlight stat-card green">
+                            <div class="stat-card-header">
+                                <div class="stat-card-info">
+                                    <h3>Plačano</h3>
+                                </div>
+                                <div class="stat-card-icon"><i class="fa-solid fa-check-circle"></i></div>
+                            </div>
+                            <data class="stat-value" id="stat-paid-revenue" value="0">0,00 €</data>
+                            <div class="stat-card-footer-container">
+                                <small class="stat-card-footer">Skupaj poravnani računi</small>
+                                <button type="button" class="btn-stat-info" aria-label="Pojasnilo" data-title="Plačano"
+                                    data-desc="Znesek vseh uspešno poravnanih računov. Pokazuje dejanski likvidni priliv na vaš račun."
+                                    popovertarget="modal-stat-info"><i class="fa-solid fa-info"
+                                        aria-hidden="true"></i></button>
+                            </div>
+                        </article>
+                        <article class="card card--highlight stat-card orange">
+                            <div class="stat-card-header">
+                                <div class="stat-card-info">
+                                    <h3>Odprto / zamude</h3>
+                                </div>
+                                <div class="stat-card-icon"><i class="fa-solid fa-exclamation-circle"></i></div>
+                            </div>
+                            <data class="stat-value" id="stat-open-revenue" value="0">0,00 €</data>
+                            <div class="stat-card-footer-container">
+                                <small class="stat-card-footer">Zapadli in neplačani zneski</small>
+                                <button type="button" class="btn-stat-info" aria-label="Pojasnilo"
+                                    data-title="Odprto / zamude"
+                                    data-desc="Seštevek vrednosti vseh računov, ki niso pravočasno označeni z 'Plačano'. Opominja na čakanje denarja."
+                                    popovertarget="modal-stat-info"><i class="fa-solid fa-info"
+                                        aria-hidden="true"></i></button>
+                            </div>
+                        </article>
+                    </div>
+
+                    <!-- Charts Area -->
+                    <div class="charts-grid-wrapper">
+                        <article class="card card--surface section-card">
+                            <header class="card-header">
+                                <div>
+                                    <h3><i class="fa-solid fa-chart-bar" aria-hidden="true"></i> Mesečni promet</h3>
+                                    <p class="text-muted text-xs">Vizualni pregled prihodkov po mesecih za tekoče leto.
+                                    </p>
+                                </div>
+                            </header>
+                            <hr class="card-divider">
+                            <div class="chart-container">
+                                <canvas id="chart-revenue-month"></canvas>
+                            </div>
+                        </article>
+                        <article class="card card--surface section-card">
+                            <header class="card-header">
+                                <div>
+                                    <h3><i class="fa-solid fa-chart-pie" aria-hidden="true"></i> Struktura prihodkov
+                                    </h3>
+                                    <p class="text-muted text-xs">Porazdelitev prihodkov po posameznih strankah.</p>
+                                </div>
+                            </header>
+                            <hr class="card-divider">
+                            <div class="chart-container">
+                                <canvas id="chart-revenue-structure"></canvas>
+                            </div>
+                        </article>
+                    </div>
+
+                    <!-- FURS Letno poročilo -->
+                    <article class="card card--surface section-card">
+                        <header class="card-header">
+                            <div>
+                                <h3><i class="fa-solid fa-landmark" aria-hidden="true"></i> FURS – Letni pregled</h3>
+                                <p class="text-muted text-xs">Hitra ocena prometa za potrebe oddaje letnega poročila.
+                                </p>
+                            </div>
+                            <div class="actions">
+                                <select id="furs-date-type" class="form-control">
+                                    <option value="dateIssued">Po datumu izdaje</option>
+                                    <option value="dateService">Po datumu opravljene storitve (do)</option>
+                                    <option value="datePaid">Po datumu plačila</option>
+                                </select>
+                            </div>
+                        </header>
+                        <hr class="card-divider">
+                        <div class="card-body furs-report-body">
+                            <div id="furs-report-content" class="furs-container">
+                                <p class="text-muted furs-intro-placeholder">Izberite leto za prikaz poročila.</p>
+                                <div id="furs-report-grid" class="stats-grid">
+                                    <!-- Dinamično polnjeno preko template-stat-card -->
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                </section>
+
+                <!-- Data Management View (Business Setup) -->
+                <section id="view-data" class="view">
+                    <!-- Removed huge header, clean UI approach -->
+
+                    <div class="settings-content page-content">
+
+
+
+                        <!-- 2. MOJE PODJETJE (Card Layout) -->
+                        <article class="card card--surface settings-card" id="company-section-details">
+                            <header class="card-header">
+                                <div>
+                                    <h3><i class="fa-solid fa-building" aria-hidden="true"></i> Moje podjetje</h3>
+                                    <p class="text-muted text-xs">Osnovni podatki o vašem podjetju, ki se izpišejo na
+                                        računih.</p>
+                                </div>
+                                <div class="section-actions">
+                                    <button class="btn btn-primary btn-sm" id="btn-add-company"
+                                        aria-label="Dodaj moje podjetje">
+                                        <i class="fa-solid fa-plus" aria-hidden="true"></i> Novo podjetje
+                                    </button>
+                                </div>
+                            </header>
+                            <hr class="card-divider">
+                            <div class="card-body">
+                                <!-- Accordion form removed, moved to dialog -->
+                                <div id="companies-list" class="items-list"></div>
+                            </div>
+                        </article>
+
+                        <!-- 3. PARTNERJI (Card Layout) -->
+                        <article class="card card--surface settings-card">
+                            <header class="card-header">
+                                <div>
+                                    <h3><i class="fa-solid fa-users" aria-hidden="true"></i> Partnerji</h3>
+                                    <p class="text-muted text-xs">Seznam vseh vaših strank (plačnikov) za hitrejši vnos.
+                                    </p>
+                                </div>
+                                <div class="section-actions">
+                                    <button class="btn btn-primary btn-sm" id="btn-add-partner"
+                                        aria-label="Dodaj novega partnerja">
+                                        <i class="fa-solid fa-plus" aria-hidden="true"></i> Nov partner
+                                    </button>
+                                </div>
+                            </header>
+                            <hr class="card-divider">
+                            <div class="card-body">
+                                <div class="search-box">
+                                    <i class="fa-solid fa-search"></i>
+                                    <input type="text" id="search-partners" placeholder="Išči partnerja..."
+                                        class="form-control" maxlength="100">
+                                </div>
+                                <!-- Accordion form removed, moved to dialog -->
+                                <div id="partners-list" class="items-list"></div>
+                            </div>
+                        </article>
+
+                        <!-- 4. STORITVE (Card Layout) -->
+                        <article class="card card--surface settings-card" id="services-section-details">
+                            <header class="card-header">
+                                <div>
+                                    <h3><i class="fa-solid fa-tags" aria-hidden="true"></i> Storitve</h3>
+                                    <p class="text-muted text-xs">Vaš cenik storitev in izdelkov s privzetimi stopnjami
+                                        DDV.</p>
+                                </div>
+                                <div class="section-actions">
+                                    <button class="btn btn-primary btn-sm" id="btn-add-service"
+                                        aria-label="Dodaj novo storitev">
+                                        <i class="fa-solid fa-plus" aria-hidden="true"></i> Nova storitev
+                                    </button>
+                                </div>
+                            </header>
+                            <hr class="card-divider">
+                            <div class="card-body">
+                                <div class="search-box">
+                                    <i class="fa-solid fa-search"></i>
+                                    <input type="text" id="search-services" placeholder="Išči storitev..."
+                                        class="form-control" maxlength="100">
+                                </div>
+                                <!-- Accordion form removed, moved to dialog -->
+                                <div id="services-list" class="items-list"></div>
+                            </div>
+                        </article>
+
+
+
+                        <!-- 5. UPRAVLJANJE PODATKOV (Card Layout) -->
+                        <article class="card card--surface settings-card" id="data-management-section-details">
+                            <header class="card-header">
+                                <h3><i class="fa-solid fa-sliders" aria-hidden="true"></i> Upravljanje podatkov</h3>
+                            </header>
+                            <hr class="card-divider">
+                            <div class="card-body">
+                                <div class="data-management-actions form-stack">
+
+                                    <!-- Export Box -->
+                                    <div class="action-box">
+                                        <div class="action-icon bg-warning-light">
+                                            <i class="fa-solid fa-download" aria-hidden="true"></i>
+                                        </div>
+                                        <div class="action-content">
+                                            <h4 class="text-main">Prenos varnostne kopije</h4>
+                                            <small class="text-xs text-muted d-block">Shranite vse svoje podatke v
+                                                računalnik za varno shranjevanje ali prenos na drugo napravo.</small>
+                                            <button id="btn-export-data" class="btn btn-warning">
+                                                Prenesi podatke
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Import Box -->
+                                    <div class="action-box">
+                                        <div class="action-icon bg-success-light">
+                                            <i class="fa-solid fa-upload" aria-hidden="true"></i>
+                                        </div>
+                                        <div class="action-content">
+                                            <h4 class="text-main">Nalaganje varnostne kopije</h4>
+                                            <small class="text-xs text-muted d-block">Naložite predhodno shranjeno
+                                                varnostno kopijo. Pozor: vsi trenutni podatki bodo prepisani.</small>
+                                            <button id="btn-import-data" class="btn btn-success">
+                                                Naloži podatke
+                                            </button>
+                                        </div>
+                                        <input type="file" id="import-file-input" accept=".json" class="hidden">
+                                    </div>
+
+                                    <!-- Danger Zone -->
+                                    <div class="danger-zone-box">
+                                        <div class="action-icon bg-danger-light">
+                                            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                                        </div>
+                                        <div class="action-content">
+                                            <h4 class="text-danger">Izbris vseh podatkov</h4>
+                                            <small class="text-xs text-danger d-block">Trajno izbrišite vse podatke iz
+                                                aplikacije. Tega dejanja ni mogoče razveljaviti.</small>
+                                            <button id="btn-delete-all-data" class="btn btn-danger">
+                                                Izbriši vse podatke
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <!-- Profile & Settings View (Dashboard) -->
+                <section id="view-profile" class="view">
+                    <!-- Removed huge header, clean UI approach -->
+
+                    <!-- 1. Profile Summary Header -->
+                    <article class="card card--surface profile-header-card">
+                        <div class="profile-avatar-large" id="profile-avatar-initials-large">U</div>
+                        <div class="profile-info">
+                            <h2 id="profile-display-name">Uporabnik</h2>
+                            <p class="text-muted"><i class="fa-solid fa-shield-halved"></i> Podatki so shranjeni lokalno
+                            </p>
+                        </div>
+                    </article>
+
+                    <div class="settings-content page-content">
+                        <!-- Category: Personalizacija -->
+                        <article class="card card--surface settings-card" id="prefs-section-details">
+                            <header class="card-header">
+                                <h3><i class="fa-solid fa-user-pen" aria-hidden="true"></i> Personalizacija</h3>
+                            </header>
+                            <hr class="card-divider">
+                            <div class="card-body form-stack">
+                                <!-- Group: Identity -->
+                                <div class="settings-subgroup">
+                                    <div class="form-group-spaced">
+                                        <label for="pref-user-name">Vaše ime</label>
+                                        <input type="text" id="pref-user-name" class="form-control"
+                                            placeholder="Vaše ime" aria-label="Prikazano ime" maxlength="100">
+                                        <small class="text-muted text-xs">Ime bo prikazano v pozdravih na domači strani
+                                            in v vašem profilu.</small>
+                                    </div>
+                                    <div class="form-group-spaced">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="pref-show-greeting">
+                                            <span>Pokaži pozdrav na domači strani</span>
+                                        </label>
+                                        <small class="text-muted text-xs d-block p-l-xl">Omogoči prijazen pozdrav glede
+                                            na del dneva (npr. "Dobro jutro").</small>
+                                    </div>
+                                </div>
+
+                                <hr class="card-divider divider-sm">
+
+                                <!-- Group: Automation -->
+                                <div class="settings-subgroup">
+                                    <h4 class="settings-subgroup-title">Pametna opravila</h4>
+                                    <div class="form-switch-group">
+                                        <label class="form-switch" aria-label="Toggle UPN naloge">
+                                            <input type="checkbox" id="pref-default-upn">
+                                            <span class="slider"></span>
+                                        </label>
+                                        <label for="pref-default-upn" class="form-switch-label">Samodejno dodaj UPN
+                                            naloge</label>
+                                    </div>
+                                    <small class="text-muted text-xs d-block">Ob ustvarjanju novega računa bo sistem
+                                        samodejno pripravil tudi UPN plačilni nalog.</small>
+                                </div>
+
+                                <hr class="card-divider divider-sm">
+
+                                <!-- Group: Visual Branding -->
+                                <div class="settings-subgroup">
+                                    <h4 class="settings-subgroup-title">Grafični videz</h4>
+                                    <div class="card card--inset">
+                                        <div class="form-group-spaced">
+                                            <label>Barva aplikacije (Branding)</label>
+                                            <div class="color-picker-group">
+                                                <div class="color-picker-row">
+                                                    <input type="color" id="pref-primary-color" value="#3b82f6"
+                                                        class="color-input-brand">
+                                                    <button id="btn-reset-color" class="btn btn-ghost btn-xs"
+                                                        title="Ponastavi na privzeto modro">
+                                                        <i class="fa-solid fa-rotate-left"></i> Ponastavi
+                                                    </button>
+                                                </div>
+                                                <small class="text-muted text-xs d-block">Prilagodite poudarke in gume
+                                                    aplikacije vašemu logotipu.</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-actions-end p-t-md">
+                                    <button id="btn-save-prefs" class="btn btn-primary"
+                                        title="Shrani vse nastavitve personalizacije">
+                                        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Shrani vse nastavitve
+                                    </button>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Category: Videz -->
+                        <article class="card card--surface settings-card" id="appearance-section-details">
+                            <header class="card-header">
+                                <h3><i class="fa-solid fa-palette" aria-hidden="true"></i> Tema aplikacije</h3>
+                            </header>
+                            <hr class="card-divider">
+                            <div class="card-body">
+                                <div class="theme-selector">
+                                    <button class="theme-btn active" data-theme="light" aria-label="Svetla tema">
+                                        <i class="fa-solid fa-sun"></i> <span>Svetla</span>
+                                    </button>
+                                    <button class="theme-btn" data-theme="dark" aria-label="Temna tema">
+                                        <i class="fa-solid fa-moon"></i> <span>Temna</span>
+                                    </button>
+                                    <button class="theme-btn" data-theme="system" aria-label="Sistemska tema">
+                                        <i class="fa-solid fa-circle-half-stroke"></i> <span>Sistem</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Category: Naprava & Shramba -->
+                        <article class="card card--surface settings-card" id="device-section-details">
+                            <header class="card-header">
+                                <h3><i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i> Status in
+                                    shramba</h3>
+                            </header>
+                            <hr class="card-divider">
+                            <div class="card-body">
+                                <div class="status-list">
+                                    <div class="status-item">
+                                        <span>Status povezave</span>
+                                        <span id="conn-status" class="status-pill success"><i
+                                                class="fa-solid fa-wifi"></i> Povezano</span>
+                                    </div>
+                                    <div class="status-item">
+                                        <span>Zasedenost na napravi</span>
+                                        <span id="storage-usage" class="status-pill warning">Računam...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Category: Sistem -->
+
+
+                        <!-- Category: O aplikaciji -->
+                        <article class="card card--surface settings-card" id="about-section-details">
+                            <header class="card-header">
+                                <h3><i class="fa-solid fa-circle-info" aria-hidden="true"></i> O aplikaciji</h3>
+                            </header>
+                            <hr class="card-divider">
+                            <div class="card-body">
+                                <!-- Donation Links -->
+                                <div class="support-section">
+                                    <h4 class="support-title">Vam je Računkomat všeč?</h4>
+                                    <p class="text-sm text-muted support-desc">Ta projekt je prosto dostopen in brez
+                                        oglasov. Že majhna podpora mi omogoča, da ga redno posodabljam in dodajam nove
+                                        funkcije.</p>
+                                    <div class="support-links">
+                                        <a href="https://buymeacoffee.com/mihaknific" target="_blank"
+                                            rel="noopener noreferrer" class="support-btn bmc" role="link"
+                                            aria-label="Podprite z nakupom kave na Buy Me a Coffee">
+                                            <svg aria-hidden="true">
+                                                <use href="assets/icons/icons-sprite.svg#icon-bmc"></use>
+                                            </svg> Buy Me a Coffee
+                                        </a>
+                                        <a href="https://ko-fi.com/mihaknific" target="_blank" rel="noopener noreferrer"
+                                            class="support-btn kofi" role="link" aria-label="Podprite na Ko-fi">
+                                            <svg aria-hidden="true">
+                                                <use href="assets/icons/icons-sprite.svg#icon-kofi"></use>
+                                            </svg> Ko-fi
+                                        </a>
+                                        <a href="https://www.patreon.com/c/mihaknific" target="_blank"
+                                            rel="noopener noreferrer" class="support-btn patreon" role="link"
+                                            aria-label="Postanite podpornik na Patreon-u">
+                                            <svg aria-hidden="true">
+                                                <use href="assets/icons/icons-sprite.svg#icon-patreon"></use>
+                                            </svg> Patreon
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div id="about-texts-container"></div>
+                            </div>
+                        </article>
+
+                    </div>
+                </section>
+
+                <!-- Global Entity Modal (Company / Partner) -->
+                <section id="view-entity-form" class="view">
+                    <article class="card card--surface section-card form-stack">
+                        <header class="card-header">
+                            <button class="btn btn-back" id="btn-close-entity-modal" type="button" aria-label="Nazaj">
+                                <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+                                <span>Nazaj</span>
+                            </button>
+                            <h3 id="modal-entity-title">Dodaj/Uredi</h3>
+                            <div class="sub-view-actions"></div>
+                        </header>
+                        <hr class="card-divider">
+                        <div class="card-body" id="modal-entity-body">
+                            <!-- Vsebina se pripne sem z uporabo template-entity-form (za podjetja ali partnerje) -->
+                        </div>
+                    </article>
+                </section>
+
+                <!-- Global Service Modal -->
+                <section id="view-service-form" class="view">
+                    <article class="card card--surface section-card form-stack">
+                        <header class="card-header">
+                            <button class="btn btn-back" id="btn-close-service-modal" type="button" aria-label="Nazaj">
+                                <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+                                <span>Nazaj</span>
+                            </button>
+                            <h3 id="modal-service-title">Storitve</h3>
+                            <div class="sub-view-actions"></div>
+                        </header>
+                        <hr class="card-divider">
+                        <div class="card-body">
+                            <form id="settings-service-form" class="form-stack">
+                                <input type="hidden" name="id">
+                                <div class="form-group-spaced">
+                                    <label>Naziv</label>
+                                    <input type="text" name="name" class="form-control" maxlength="150" required>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Cena (€)</label>
+                                        <input type="number" step="0.01" name="price" class="form-control"
+                                            placeholder="0.00" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Enota</label>
+                                        <select name="unit" class="form-control" required>
+                                            <option value="dan">dan</option>
+                                            <option value="kg">kg</option>
+                                            <option value="km">km</option>
+                                            <option value="kos">kos</option>
+                                            <option value="kpl">kpl</option>
+                                            <option value="l">l</option>
+                                            <option value="m">m</option>
+                                            <option value="m2">m2</option>
+                                            <option value="m3">m3</option>
+                                            <option value="mesec">mesec</option>
+                                            <option value="paušal">paušal</option>
+                                            <option value="storitev">storitev</option>
+                                            <option value="svetovanje">svetovanje</option>
+                                            <option value="ura" selected>ura</option>
+                                            <option value="vožnja">vožnja</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Privzet DDV (%)</label>
+                                    <select name="vatRate" class="form-control" required>
+                                        <option value="22" selected>22% (Splošna stopnja)</option>
+                                        <option value="9.5">9.5% (Znižana stopnja)</option>
+                                        <option value="5">5% (Posebna stopnja)</option>
+                                        <option value="0">0% (Brez DDV)</option>
+                                    </select>
+                                </div>
+                                <div class="actions-row">
+                                    <button type="button" class="btn btn-outline"
+                                        id="btn-cancel-service-modal">Prekliči</button>
+                                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"
+                                            aria-hidden="true"></i> Shrani</button>
+                                </div>
+                            </form>
+                        </div>
+                    </article>
+                </section>
+
+                <!-- App Footer -->
+                <footer class="app-footer">
+                    <div class="footer-content">
+                        <div class="footer-copyright">
+                            &copy; 2026 Računkomat. Vse pravice pridržane. | <a href="https://mihaknific.github.io"
+                                target="_blank" rel="noopener noreferrer"
+                                class="portfolio-link">mihaknific.github.io</a>
+                        </div>
+                        <div class="support-links">
+                            <a href="https://buymeacoffee.com/mihaknific" target="_blank" rel="noopener noreferrer"
+                                class="support-btn bmc" role="link"
+                                aria-label="Podprite z nakupom kave na Buy Me a Coffee">
+                                <svg aria-hidden="true">
+                                    <use href="assets/icons/icons-sprite.svg#icon-bmc"></use>
+                                </svg> Buy Me a Coffee
+                            </a>
+                            <a href="https://ko-fi.com/mihaknific" target="_blank" rel="noopener noreferrer"
+                                class="support-btn kofi" role="link" aria-label="Podprite na Ko-fi">
+                                <svg aria-hidden="true">
+                                    <use href="assets/icons/icons-sprite.svg#icon-kofi"></use>
+                                </svg> Ko-fi
+                            </a>
+                            <a href="https://www.patreon.com/c/mihaknific" target="_blank" rel="noopener noreferrer"
+                                class="support-btn patreon" role="link" aria-label="Postanite podpornik na Patreon-u">
+                                <svg aria-hidden="true">
+                                    <use href="assets/icons/icons-sprite.svg#icon-patreon"></use>
+                                </svg> Patreon
+                            </a>
+                        </div>
+                    </div>
+                </footer>
+            </div>
+        </main>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+
+
+
+
+
+
+
+    <!-- Welcome Modal (First Time) -->
+    <!-- Warnings Modal -->
+    <dialog id="modal-warnings" class="modal-dialog" aria-labelledby="warnings-title">
+        <div class="card card--surface modal-content">
+            <header class="modal-header">
+                <h3 id="warnings-title" class="modal-warning-title"><i class="fa-solid fa-triangle-exclamation"
+                        aria-hidden="true"></i> Opozorilo pred
+                    shranjevanjem</h3>
+                <button class="btn-icon close-modal" aria-label="Zapri okno"><i class="fa-solid fa-xmark"
+                        aria-hidden="true"></i></button>
+            </header>
+
+            <hr class="card-divider">
+
+            <div class="modal-body">
+                <p>Odkrili smo nekaj posebnosti. Ali ste prepričani, da želite nadaljevati?</p>
+                <ul id="modal-warnings-list" class="modal-warnings-list">
+                </ul>
+            </div>
+
+            <hr class="card-divider">
+
+            <footer class="modal-footer">
+                <button class="btn btn-outline" id="btn-warnings-cancel">Prekliči</button>
+                <button class="btn btn-primary" id="btn-warnings-proceed" autofocus>Vseeno shrani</button>
+            </footer>
+        </div>
+    </dialog>
+
+    <!-- Info Modal: Sklic -->
+    <div id="modal-sklic-info" class="modal-dialog" aria-labelledby="sklic-title" popover="auto">
+        <div class="card card--surface modal-content">
+            <header class="modal-header">
+                <h3 id="sklic-title"><i class="fa-solid fa-circle-question" aria-hidden="true"></i> Pomoč pri sklicu
+                </h3>
+                <button class="btn-icon" popovertarget="modal-sklic-info" popovertargetaction="hide"
+                    aria-label="Zapri okno"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+            </header>
+
+            <hr class="card-divider">
+
+            <div class="modal-body">
+                <p>Sklic je obvezen podatek na UPN nalogu. Sestoji iz modela in številke.</p>
+                <div class="form-stack">
+                    <p><strong>SI00:</strong> Najpogostejši model. Številka je poljubna (npr. številka računa).</p>
+                    <p><strong>SI12:</strong> Model s kontrolo po modulu 11. Številka se izračuna po posebnem
+                        algoritmu.
+                    </p>
+                    <p><strong>SI01:</strong> Model za proračunska plačila.</p>
+                </div>
+                <p class="mt-3 text-muted">Če niste prepričani, uporabite <strong>SI00</strong> in številko računa.</p>
+            </div>
+
+            <hr class="card-divider">
+
+            <footer class="modal-footer">
+                <button class="btn btn-primary" popovertarget="modal-sklic-info"
+                    popovertargetaction="hide">Razumem</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Pojasnila Metrik: Global Modal (Bottom Sheet on Mobile) -->
+    <div id="modal-stat-info" class="modal-dialog" aria-labelledby="stat-info-title" popover="auto">
+        <div class="card card--surface modal-content">
+            <header class="modal-header">
+                <h3 id="stat-info-title"><i class="fa-solid fa-chart-pie text-primary" aria-hidden="true"></i> <span
+                        id="stat-info-title-text">Pojasnilo</span></h3>
+                <button class="btn-icon" popovertarget="modal-stat-info" popovertargetaction="hide"
+                    aria-label="Zapri okno"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+            </header>
+
+            <hr class="card-divider">
+
+            <div class="modal-body">
+                <p id="stat-info-desc"></p>
+            </div>
+
+            <hr class="card-divider">
+
+            <footer class="modal-footer">
+                <button class="btn btn-primary" popovertarget="modal-stat-info" popovertargetaction="hide"
+                    autofocus>Razumem</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- PDF Preview Modal -->
+    <dialog id="modal-pdf-preview" class="modal-dialog" aria-labelledby="pdf-title">
+        <div class="card card--surface modal-content">
+            <header class="modal-header">
+                <h3 id="pdf-title">Predogled Računa</h3>
+                <button class="btn-icon close-modal" aria-label="Zapri okno"><i class="fa-solid fa-xmark"
+                        aria-hidden="true"></i></button>
+            </header>
+
+            <hr class="card-divider">
+
+            <div class="modal-body">
+                <iframe id="pdf-preview-frame"></iframe>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Confirm Modal (Non-blocking) -->
+    <dialog id="modal-confirm" class="modal-dialog" aria-labelledby="confirm-title">
+        <div class="card card--surface modal-content">
+            <header class="modal-header">
+                <h3 id="confirm-title">Potrditev</h3>
+                <button class="btn-icon close-modal" aria-label="Zapri okno"><i class="fa-solid fa-xmark"
+                        aria-hidden="true"></i></button>
+            </header>
+
+            <hr class="card-divider">
+
+            <div class="modal-body">
+                <p id="confirm-message">Ali ste prepričani?</p>
+            </div>
+
+            <hr class="card-divider">
+
+            <footer class="modal-footer">
+                <button class="btn btn-outline" id="btn-confirm-cancel">Prekliči</button>
+                <button class="btn btn-primary" id="btn-confirm-proceed" autofocus>Potrdi</button>
+            </footer>
+        </div>
+    </dialog>
+
+    <!-- Hidden storage for dynamic forms (prevents DOM loss during re-renders) -->
+
+
+    <!-- HTML Templates -->
+    <div id="app-templates" hidden aria-hidden="true">
+        <!-- Template: About Texts -->
+        <template id="template-about-texts">
+            <hr class="section-divider">
+
+            <!-- App Benefits -->
+            <div class="app-benefits form-stack">
+                <h4 class="text-main">Glavne prednosti Računka:</h4>
+                <ul class="benefits-list">
+                    <li class="benefit-item">
+                        <i class="fa-solid fa-bolt text-warning benefit-icon"></i>
+                        <div><strong>Lokalno in hitro:</strong> Aplikacija teče v celoti na vaši
+                            napravi, brez čakanja na oddaljene strežnike.</div>
+                    </li>
+                    <li class="benefit-item">
+                        <i class="fa-solid fa-shield-halved text-success benefit-icon"></i>
+                        <div><strong>100% Zasebno:</strong> Ni prijav, ni sledilnikov. Vaši računi
+                            in poslovni podatki ostanejo strogo na vaši napravi.</div>
+                    </li>
+                    <li class="benefit-item">
+                        <i class="fa-solid fa-gift text-primary benefit-icon"></i>
+                        <div><strong>Brezplačno:</strong> Brez omejitev števila izdanih računov,
+                            brez skritih stroškov ali naročnin.</div>
+                    </li>
+                    <li class="benefit-item">
+                        <div class="welcome-icon-box cyan"><i class="fa-solid fa-mobile-screen-button"></i></div>
+                        <div><strong>Deluje brez spleta:</strong> Račune lahko ustvarjate in
+                            pregledujete kjerkoli in kadarkoli.</div>
+                    </li>
+                </ul>
+            </div>
+            <hr class="section-divider">
+
+            <!-- Varnost in zasebnost -->
+            <div class="about-info-section form-stack">
+                <h4 class="text-main"><i class="fa-solid fa-shield-halved text-muted" aria-hidden="true"></i> Varnost in
+                    zasebnost</h4>
+                <p class="text-sm text-muted"><strong>Popolna lokalnost:</strong> Računkomat deluje
+                    izključno na vaši napravi in brez kakršnegakoli vzporednega strežnika. Vsi
+                    podatki (izdani računi, stranke, nastavitve) se hranijo lokalno. Nikoli ne
+                    potujejo po internetu in nikoli ne zapustijo vaše fizične naprave. To pomeni, da
+                    absolutno nihče nima dostopa do njih vključno z avtorjem aplikacije.</p>
+                <p class="text-sm text-muted"><strong>Uporaba piškotkov in GDPR:</strong> Aplikacija za
+                    svoje delovanje in shranjevanje vaših računov uporablja izključno nujno potrebno lokalno
+                    shrambo brskalnika (IndexedDB/LocalStorage). Aplikacija <strong>ne uporablja</strong>
+                    analitičnih ali oglaševalskih piškotkov. Ker gre za izključno funkcionalno shranjevanje na vašo
+                    zahtevo, po evropski zakonodaji (ePrivacy direktiva in GDPR) <strong>privolitev v obliki
+                        pasice za piškotke ni potrebna.</strong></p>
+                <p class="text-sm text-muted"><strong>Fizično tveganje:</strong> Vaše podatke bi
+                    načeloma lahko ogrozil izključno nekdo, ki bi neposredno pridobil fizičen dostop
+                    do vašega računalnika takrat ko je ta odklenjen, ali če bi ročno preko spleta
+                    namestili kakšno izjemno zlonamerno programsko razširitev direktno v brskalnik.
+                </p>
+            </div>
+            <hr class="section-divider">
+
+            <!-- Kdaj so podatki varni / kdaj ne -->
+            <div class="about-info-section form-stack">
+                <h4 class="text-main"><i class="fa-solid fa-database text-muted" aria-hidden="true"></i> Trajnost
+                    podatkov</h4>
+                <p class="text-sm text-muted">Vsi podatki <strong>ostanejo trajno ohranjeni</strong>
+                    ob osveževanju strani, zaprtju brskalnika in ponovnem zagonu računalnika. Vaša
+                    seja je varna.</p>
+                <p class="text-sm text-muted">Bodite zelo pozorni, saj se podatki <strong>neizbežno
+                        izgubijo</strong>, v kolikor v brskalniku ročno izberete funkcijo
+                    <em>»Počisti podatke brskanja«</em>, če aplikacijo odprete v zasebnem
+                    (incognito) oknu, ali pa če brskalnik odstranite oziroma formatirate trdi disk.
+                </p>
+            </div>
+            <hr class="section-divider">
+
+            <!-- Varnostne kopije -->
+            <div class="about-info-section form-stack">
+                <h4 class="text-main"><i class="fa-solid fa-arrow-up-from-bracket text-muted" aria-hidden="true"></i>
+                    Varnostno kopiranje</h4>
+                <p class="text-sm text-muted">Zaradi lokalne narave aplikacije noben strežnik ne
+                    dela samodejnih varnostnih kopij, zato za dolgoročno varnost odgovarjate sami.
+                    Priporočamo vam reden občasen izvoz takoj po večjem sklopu izdanih računov.</p>
+                <p class="text-sm text-muted"><strong>Izvoz in uvoz:</strong> V nastavitvah
+                    prenesite sistemsko datoteko z vsemi podatki in jo shranite na popolnoma varno
+                    lokacijo (npr. USB ključek ali vaš osebni oblačni pogon). Pri zamenjavi
+                    računalnika to isto datoteko po hitrem postopku naložite in v sekundi, brez
+                    izgube, povrnite vse pretekle izdane račune.</p>
+                <p class="text-sm text-muted"><strong>CSV izvoz:</strong> Za pregled v programu
+                    Excel ali za enostavno predajo vašemu računovodji, lahko namesto sistemske
+                    datoteke vse račune izvozite tudi v obliki klasične preglednice formatirane kot
+                    CSV.</p>
+            </div>
+            <hr class="section-divider">
+
+            <!-- Navodila za uporabo -->
+            <div class="about-info-section form-stack">
+                <h4 class="text-main"><i class="fa-solid fa-book-open text-muted" aria-hidden="true"></i> Kratka
+                    navodila</h4>
+                <p class="text-sm text-muted"><strong>Izdaja in urejanje:</strong> Vaš prvi račun
+                    ustvarite s klikom na gumb <em>»+ Nov račun«</em>, kjer izpolnite formo in ga na
+                    koncu potrdite. Za kakršnekoli kasnejše popravke zgolj poiščite listino v
+                    seznamu, kliknite nanjo, odprl se vam bo isti obrazec, vi pa nato samo shranite
+                    nove popravke.</p>
+                <p class="text-sm text-muted"><strong>Predogled in prenos:</strong> Račun se
+                    samodejno in v milisekundi zgenerira kot visokokakovosten in standardiziran PDF
+                    dokument. Prikazuje se neposredno znotraj vaše aplikacije in ne zahteva brskanja
+                    po datotekah – predogled imate takoj pred očmi, pripravljen na prenos.</p>
+                <p class="text-sm text-muted"><strong>Celoten izbris:</strong> Svojo aplikacijo
+                    lahko po želji popolnoma ponastavite na novo stanje in počistite podatke
+                    organizacije. Za zaščito pred nevarnimi kliki funkcija zahteva varnostni ročni
+                    vpis potrditvene besede <em>»POČISTI«</em> pred izvršitvijo izbrisa.</p>
+            </div>
+            <hr class="section-divider">
+        </template>
+
+        <!-- Template: Invoice Item Row -->
+        <template id="template-invoice-item-row">
+            <div class="item-row">
+                <div class="form-group item-col-index">
+                    <span class="item-index-display">#1</span>
+                </div>
+                <div class="form-group item-col-desc">
+                    <label>Opis storitve</label>
+                    <input type="text" class="form-control item-desc" placeholder="Opis …" autocomplete="off"
+                        maxlength="200">
+                </div>
+                <div class="form-group item-col-qty">
+                    <label>Kol.</label>
+                    <input type="number" class="form-control item-qty" inputmode="decimal" value="1" min="0.1"
+                        step="0.1">
+                </div>
+                <div class="form-group item-col-unit">
+                    <label>Enota</label>
+                    <select class="form-control item-unit">
+                        <option value="dan">dan</option>
+                        <option value="kg">kg</option>
+                        <option value="km">km</option>
+                        <option value="kos">kos</option>
+                        <option value="kpl">kpl</option>
+                        <option value="l">l</option>
+                        <option value="m">m</option>
+                        <option value="m2">m2</option>
+                        <option value="m3">m3</option>
+                        <option value="mesec">mesec</option>
+                        <option value="paušal">paušal</option>
+                        <option value="storitev">storitev</option>
+                        <option value="svetovanje">svetovanje</option>
+                        <option value="ura" selected>ura</option>
+                        <option value="vožnja">vožnja</option>
+                    </select>
+                </div>
+                <div class="form-group item-col-price">
+                    <label>Cena/en. (€)</label>
+                    <input type="number" class="form-control item-price" inputmode="decimal" min="0" step="0.01"
+                        placeholder="0.00">
+                </div>
+                <div class="form-group item-col-vat">
+                    <label>DDV (%)</label>
+                    <select class="form-control item-vat">
+                        <option value="22">22%</option>
+                        <option value="9.5">9.5%</option>
+                        <option value="5">5%</option>
+                        <option value="0">0%</option>
+                    </select>
+                </div>
+                <div class="form-group item-col-neto">
+                    <label>Neto (€)</label>
+                    <input type="text" class="form-control item-neto" readonly tabindex="-1">
+                </div>
+                <div class="form-group item-col-vat-amount">
+                    <label>DDV (€)</label>
+                    <input type="text" class="form-control item-vat-amount" readonly tabindex="-1">
+                </div>
+                <div class="form-group item-col-total">
+                    <label>Bruto (€)</label>
+                    <input type="text" class="form-control item-total" readonly tabindex="-1">
+                </div>
+                <button type="button" class="form-group item-col-actions btn-remove-item" title="Odstrani postavko"
+                    aria-label="Odstrani postavko" data-action="remove-item" data-id="">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </div>
+        </template>
+
+        <!-- Template: Invoice Table Row -->
+        <template id="template-invoice-table-row">
+            <tr class="table-row">
+                <td class="inv-number" data-label="Št. računa"></td>
+                <td class="inv-partner" data-label="Plačnik"></td>
+                <td class="inv-date text-xs" data-label="Datum"></td>
+                <td class="inv-net-amount text-right tabular" data-label="Brez DDV"></td>
+                <td class="inv-gross-amount text-right tabular strong" data-label="Skupaj"></td>
+                <td class="inv-status text-center" data-label="Status">
+                    <button class="badge badge-status-btn clickable" data-action="toggle-status" data-id=""
+                        aria-label="Spremeni status">
+                        <i class="fa-solid" aria-hidden="true"></i>
+                        <span class="status-text text-xxs"></span>
+                    </button>
+                </td>
+                <td class="inv-actions text-right" data-label="Možnosti">
+                    <div class="actions-group">
+                        <button class="btn-icon btn-print-invoice" data-action="print-invoice" data-id=""
+                            title="Prenesi PDF" aria-label="Prenesi PDF">
+                            <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
+                        </button>
+                        <button class="btn-icon btn-edit-invoice" data-action="edit-invoice" data-id=""
+                            title="Uredi račun" aria-label="Uredi račun">
+                            <i class="fa-solid fa-pen" aria-hidden="true"></i>
+                        </button>
+                        <button class="btn-icon btn-duplicate-invoice" data-action="duplicate-invoice" data-id=""
+                            title="Podvoji račun" aria-label="Podvoji račun">
+                            <i class="fa-solid fa-copy" aria-hidden="true"></i>
+                        </button>
+                        <button class="btn-icon btn-delete-invoice danger" data-action="delete-invoice" data-id=""
+                            data-number="" title="Izbriši račun" aria-label="Izbriši račun">
+                            <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        </template>
+
+        <!-- Template: Recent Invoice Card (Home) -->
+        <template id="template-recent-invoice-card">
+            <div class="invoice-card invoice-card--compact card--interactive" tabindex="0" role="button"
+                aria-label="Uredi račun">
+                <div class="inv-info">
+                    <strong class="inv-number"></strong>
+                    <span class="inv-partner"></span>
+                </div>
+                <div class="inv-amount">
+                    <strong class="inv-amount-val"></strong>
+                    <span class="badge inv-status-badge"></span>
+                </div>
+            </div>
+        </template>
+
+        <!-- Template: Stat Card (Analytics) -->
+        <template id="template-stat-card">
+            <article class="card card--highlight stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-info">
+                        <h3 class="stat-title"></h3>
+                    </div>
+                    <div class="stat-card-icon">
+                        <i class="fa-solid" aria-hidden="true"></i>
+                    </div>
+                </div>
+                <data class="stat-value" value=""></data>
+                <div class="stat-card-footer-container">
+                    <small class="stat-card-footer"></small>
+                    <button type="button" class="btn-stat-info" data-title="" data-desc="" aria-label="Pojasnilo"
+                        popovertarget="modal-stat-info">
+                        <i class="fa-solid fa-info" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </article>
+        </template>
+
+        <!-- Template: Issuer Display Card -->
+        <template id="template-issuer-display-card">
+            <address class="issuer-card issuer-card--inline">
+                <div class="issuer-card-grid">
+                    <div class="issuer-logo-box hidden">
+                        <img src="" alt="Logotip podjetja">
+                    </div>
+                    <div class="issuer-info-stack">
+                        <strong class="comp-name"></strong>
+                        <div class="comp-address"></div>
+                        <div class="comp-tax"></div>
+                        <div class="comp-reg"></div>
+                        <div class="comp-iban"></div>
+                        <div class="comp-contact"></div>
+                        <div class="comp-signatory"></div>
+                        <div class="issuer-signature-box hidden">
+                            <img src="" alt="Podpis/žig">
+                        </div>
+                    </div>
+                </div>
+                <div class="issuer-card-actions">
+                    <button type="button" class="btn btn-sm btn-outline btn-edit-issuer">
+                        <i class="fa-solid fa-pen" aria-hidden="true"></i> Uredi
+                    </button>
+                </div>
+            </address>
+        </template>
+
+        <!-- Template: Partner Display Card -->
+        <template id="template-partner-display-card">
+            <address class="issuer-card issuer-card--inline">
+                <div class="issuer-card-grid">
+                    <div class="issuer-info-stack">
+                        <strong class="part-name"></strong>
+                        <div class="part-address"></div>
+                        <div class="part-tax"></div>
+                        <div class="part-reg"></div>
+                        <div class="part-contact"></div>
+                    </div>
+                </div>
+                <div class="issuer-card-actions">
+                    <button type="button" class="btn btn-sm btn-outline btn-edit-partner">
+                        <i class="fa-solid fa-pen" aria-hidden="true"></i> Uredi
+                    </button>
+                </div>
+            </address>
+        </template>
+
+        <!-- Template: Settings Item Card (Generic) -->
+        <template id="template-settings-item-card">
+            <article class="card card--surface settings-item-card card--interactive">
+                <div class="settings-item-info">
+                    <div class="settings-item-name"></div>
+                    <div class="settings-item-details"></div>
+                </div>
+                <div class="settings-item-actions">
+                    <button type="button" class="btn-icon btn-edit" title="Uredi">
+                        <i class="fa-solid fa-pen" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="btn-icon text-danger btn-delete" title="Izbriši">
+                        <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </article>
+        </template>
+
+        <!-- Template: Skeleton Table Row -->
+        <template id="template-skeleton-row">
+            <tr class="skeleton-row">
+                <td colspan="8">
+                    <div class="skeleton skeleton-row"></div>
+                </td>
+            </tr>
+        </template>
+
+        <!-- Template: Empty State -->
+        <template id="template-empty-state">
+            <div class="empty-state">
+                <div class="empty-icon-box">
+                    <i class="fa-solid" aria-hidden="true"></i>
+                </div>
+                <h3 class="empty-title"></h3>
+                <p class="empty-desc text-muted"></p>
+            </div>
+        </template>
+
+        <!-- Template: Entity Form (Shared for Issuer/Partner) -->
+        <template id="template-entity-form">
+            <form class="form-stack entity-form">
+                <input type="hidden" name="id">
+                <div class="form-group-spaced">
+                    <label>Naziv / Ime</label>
+                    <input type="text" name="name" class="form-control" maxlength="150" required
+                        autocomplete="organization">
+                </div>
+                <div class="form-group-spaced">
+                    <label>Naslov</label>
+                    <input type="text" name="address" class="form-control" maxlength="150"
+                        autocomplete="street-address">
+                </div>
+                <div class="form-row">
+                    <div class="form-group-spaced">
+                        <label>Pošta</label>
+                        <input type="text" name="postalCode" class="form-control" maxlength="20"
+                            autocomplete="postal-code">
+                    </div>
+                    <div class="form-group-spaced flex-2">
+                        <label>Kraj</label>
+                        <input type="text" name="city" class="form-control" maxlength="100"
+                            autocomplete="address-level2">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group-spaced">
+                        <label>Davčna številka</label>
+                        <input type="text" name="taxNumber" class="form-control" placeholder="12345678" maxlength="20"
+                            data-validate="tax">
+                    </div>
+                    <div class="form-group-spaced">
+                        <label>Matična številka</label>
+                        <input type="text" name="registrationNumber" class="form-control" placeholder="1234567890"
+                            maxlength="20">
+                    </div>
+                </div>
+
+                <!-- Specific Fields for Company (Issuer) -->
+                <div class="field-group-company hidden">
+                    <div class="form-group-spaced">
+                        <label>TRR (IBAN)</label>
+                        <input type="text" name="iban" class="form-control" placeholder="SI56 ..." maxlength="34"
+                            data-validate="iban">
+                    </div>
+                    <div class="form-group-spaced">
+                        <label>BIC / SWIFT</label>
+                        <input type="text" name="bic" class="form-control" maxlength="11">
+                    </div>
+                    <div class="form-group-spaced">
+                        <div class="form-switch-container">
+                            <label class="form-switch">
+                                <input type="checkbox" name="isVatPayer">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="switch-label">Zavezanec za DDV</span>
+                        </div>
+                    </div>
+
+                    <!-- Media Uploads for Issuer -->
+                    <div class="form-row">
+                        <div class="form-group-spaced">
+                            <label>Logotip (PNG, JPG)</label>
+                            <div class="image-upload-box" id="logo-upload-box">
+                                <input type="file" id="logo-input" accept="image/png, image/jpeg, image/svg+xml" hidden>
+                                <div class="upload-placeholder">
+                                    <i class="fa-solid fa-image"></i>
+                                    <small>Naloži logotip</small>
+                                </div>
+                                <div class="upload-preview hidden">
+                                    <img id="logo-preview-img" src="" alt="Logotip">
+                                    <button type="button" class="btn-remove-image" data-target="logo"><i
+                                            class="fa-solid fa-times"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group-spaced">
+                            <label>Podpis/Žig (PNG, JPG)</label>
+                            <div class="image-upload-box" id="signature-upload-box">
+                                <input type="file" id="signature-input" accept="image/png, image/jpeg, image/svg+xml"
+                                    hidden>
+                                <div class="upload-placeholder">
+                                    <i class="fa-solid fa-pen-nib"></i>
+                                    <small>Naloži podpis</small>
+                                </div>
+                                <div class="upload-preview hidden">
+                                    <img id="signature-preview-img" src="" alt="Podpis">
+                                    <button type="button" class="btn-remove-image" data-target="signature"><i
+                                            class="fa-solid fa-times"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Specific Fields for Partner -->
+                <div class="field-group-partner hidden">
+                    <div class="form-group-spaced">
+                        <label>Email</label>
+                        <input type="email" name="email" class="form-control" autocomplete="email">
+                    </div>
+                </div>
+
+                <div class="actions-row">
+                    <button type="button" class="btn btn-outline btn-cancel-accordion">Prekliči</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-check" aria-hidden="true"></i> <span class="btn-text">Shrani</span>
+                    </button>
+                </div>
+            </form>
+        </template>
+
+        <!-- Shared Datalists -->
+        <datalist id="datalist-services">
+            <!-- Dinamično polnjeno iz JS (ItemsTable.loadServicesDatalist) -->
+        </datalist>
+        <datalist id="datalist-countries">
+            <option value="SI">Slovenija</option>
+            <option value="HR">Hrvaška</option>
+            <option value="AT">Avstrija</option>
+            <option value="DE">Nemčija</option>
+            <option value="IT">Italija</option>
+            <option value="HU">Madžarska</option>
+            <option value="CZ">Češka</option>
+            <option value="SK">Slovaška</option>
+            <option value="PL">Poljska</option>
+            <option value="FR">Francija</option>
+            <option value="ES">Španija</option>
+            <option value="NL">Nizozemska</option>
+            <option value="BE">Belgija</option>
+            <option value="CH">Švica</option>
+            <option value="RS">Srbija</option>
+            <option value="BA">Bosna in Hercegovina</option>
+            <option value="ME">Črna gora</option>
+            <option value="MK">Severna Makedonija</option>
+            <option value="BG">Bolgarija</option>
+            <option value="RO">Romunija</option>
+            <option value="GB">Velika Britanija</option>
+            <option value="US">Združene države Amerike</option>
+        </datalist>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="js/main.js"></script>
+</body>
+
+</html>

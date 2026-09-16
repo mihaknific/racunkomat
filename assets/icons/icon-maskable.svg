@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Maskable icon: full bleed background, content in 80% safe zone -->
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#2563eb"/>
+    </linearGradient>
+  </defs>
+  <!-- Full bleed background (no rounded corners — OS will mask) -->
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <!-- Content in safe zone (51px padding = 10% on each side) -->
+  <rect x="168" y="110" width="176" height="240" rx="14" fill="#ffffff" opacity="0.95"/>
+  <!-- Document lines -->
+  <rect x="196" y="152" width="120" height="10" rx="5" fill="#93c5fd"/>
+  <rect x="196" y="180" width="88" height="10" rx="5" fill="#bfdbfe"/>
+  <rect x="196" y="208" width="104" height="10" rx="5" fill="#bfdbfe"/>
+  <!-- Euro symbol -->
+  <text x="256" y="310" font-family="Inter, Arial, sans-serif" font-size="64" font-weight="700" fill="#3b82f6" text-anchor="middle">€</text>
+  <!-- Checkmark circle -->
+  <circle cx="322" cy="132" r="28" fill="#22c55e"/>
+  <polyline points="308,132 318,142 336,118" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,22 @@
+{
+  "name": "racunkomat-pwa",
+  "version": "1.0.0",
+  "description": "Profesionalna PWA aplikacija za izdajanje in vodenje računov (Računkomat).",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve ."
+  },
+  "keywords": [
+    "invoice",
+    "racun",
+    "pwa",
+    "slovenia",
+    "pdf"
+  ],
+  "author": "Računkomat (Avtor: Miha Knific)",
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mihaknific/racunkomat"
+  }
+}
