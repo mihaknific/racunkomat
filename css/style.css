@@ -5134,6 +5134,11 @@
             background-color: rgba(255, 66, 77, 0.15);
             color: #FF424D;
         }
+
+        &.portfolio {
+            background-color: var(--c-surface-variant);
+            color: var(--c-text);
+        }
     }
 
     /* --- UPN QR Slip UI Components --- */
